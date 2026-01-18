@@ -2,7 +2,7 @@
 
 ### References
 - [Roadmap.sh](https://roadmap.sh/kubernetes)
-- [YouTube](https://www.youtube.com/watch?v=X48VuDVv0do)
+- [YouTube](https://youtu.be/X48VuDVv0do?si=0Wlax-stebzTjFqT&t=2991)
 
 ---
 ### 1. **Service**
@@ -85,6 +85,52 @@
 |2| `kubectl` | [Download](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/#install-kubectl-binary-on-windows-via-direct-download-or-curl)|
 |3| `VirtualBox` | [Download](https://www.virtualbox.org/)|
 
-** **Note:** You might requrie `windows c++ redistributable 2019`, [Dowload](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version) both x86 and x64 architecture if windows.
+>** **Note:** You might requrie `windows c++ redistributable 2019`, [Dowload](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version) both x86 and x64 architecture if windows.
+>
+>** `Virtualization not enabled from BIOS`: If such error pops up even after enabling it then try `minikube start --no-vtx-check` instead of `minikube start`
 
-** `Virtualization not enabled from BIOS`: If such error pops up even after enabling it then try `minikube start --no-vtx-check` instead of `minikube start`
+## Steps to start a K8 container (local)
+
+### Using Docker and minikube
+
+```
+minikube start --driver=docker --kubernetes-version=v1.29.4
+
+kubectl get nodes
+
+```
+
+### Using Docker and Kind
+```
+curl.exe -Lo kind.exe https://kind.sigs.k8s.io/dl/v0.22.0/kind-windows-amd64
+
+mkdir C:\kind
+move kind.exe C:\kind\
+
+setx PATH "$env:PATH;C:\kind"
+
+kind version
+
+kind create cluster
+
+kubectl get nodes
+```
+
+## kubectl commands
+
+```
+kubectl version
+kubectl get nodes
+kubectl get pods
+kubectl get services
+kubectl get replicaset 
+
+--- deployment ---
+kubectl create deployment nginx-depl --image=nginx
+
+```
+>![Comparison between the naming of Deployment, Replicaset & Pod](/assets/deployment-replicaset-pod.png)
+>Fig : 1.1 Comparison between the naming of Deployment, Replicaset & Pod
+
+## Replicaset
+ Managing the replicas of a pod
