@@ -1,5 +1,7 @@
 ## Kubernetes Components - _Learn with codexdebayan_
 
+### Last updated: 03/04/2026
+
 ### References
 - [Roadmap.sh](https://roadmap.sh/kubernetes)
 - [YouTube](https://youtu.be/X48VuDVv0do?si=0Wlax-stebzTjFqT&t=2991)
