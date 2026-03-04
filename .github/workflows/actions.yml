@@ -1,0 +1,46 @@
+name: Auto Release Tag
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  tag-release:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          git fetch --tags
+          latest=$(git tag -l "v*" | sort -V | tail -n 1)
+          echo "latest_tag=$latest" >> $GITHUB_OUTPUT
+
+      - name: Increment tag
+        id: new_tag
+        run: |
+          tag=${{ steps.get_tag.outputs.latest_tag }}
+
+          if [ -z "$tag" ]; then
+            new_tag="v1.0"
+          else
+            version=${tag#v}
+            major=$(echo $version | cut -d. -f1)
+            new_major=$((major+1))
+            new_tag="v${new_major}.0"
+          fi
+
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.new_tag.outputs.new_tag }}
+          git push origin ${{ steps.new_tag.outputs.new_tag }}
