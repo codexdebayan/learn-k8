@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   tag-release:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'develop'
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
 
     steps:
@@ -20,36 +20,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch tags
-        run: git fetch --tags
-
-      - name: Get latest tag
-        id: get_tag
+      - name: Extract version from branch
+        id: get_version
         run: |
-          latest_tag=$(git tag -l "v*" | sort -V | tail -n 1)
-          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
-
-      - name: Generate next tag
-        id: next_tag
-        run: |
-          tag=${{ steps.get_tag.outputs.latest_tag }}
-
-          if [ -z "$tag" ]; then
-            new_tag="v1.0"
-          else
-            version=${tag#v}
-            major=$(echo $version | cut -d. -f1)
-            next=$((major + 1))
-            new_tag="v${next}.0"
-          fi
-
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
-          echo "Next tag: $new_tag"
+          branch="${{ github.event.pull_request.head.ref }}"
+          version="${branch#release/}"
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Tag version: $version"
 
       - name: Create and push tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git tag ${{ steps.next_tag.outputs.new_tag }}
-          git push origin ${{ steps.next_tag.outputs.new_tag }}
+          git tag ${{ steps.get_version.outputs.version }}
+          git push origin ${{ steps.get_version.outputs.version }}
