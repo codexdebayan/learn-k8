@@ -6,26 +6,31 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   tag-release:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop'
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'develop'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Fetch tags
+        run: git fetch --tags
+
       - name: Get latest tag
         id: get_tag
         run: |
-          git fetch --tags
-          latest=$(git tag -l "v*" | sort -V | tail -n 1)
-          echo "latest_tag=$latest" >> $GITHUB_OUTPUT
+          latest_tag=$(git tag -l "v*" | sort -V | tail -n 1)
+          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
 
-      - name: Increment tag
-        id: new_tag
+      - name: Generate next tag
+        id: next_tag
         run: |
           tag=${{ steps.get_tag.outputs.latest_tag }}
 
@@ -34,13 +39,17 @@ jobs:
           else
             version=${tag#v}
             major=$(echo $version | cut -d. -f1)
-            new_major=$((major+1))
-            new_tag="v${new_major}.0"
+            next=$((major + 1))
+            new_tag="v${next}.0"
           fi
 
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "Next tag: $new_tag"
 
-      - name: Create tag
+      - name: Create and push tag
         run: |
-          git tag ${{ steps.new_tag.outputs.new_tag }}
-          git push origin ${{ steps.new_tag.outputs.new_tag }}
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git tag ${{ steps.next_tag.outputs.new_tag }}
+          git push origin ${{ steps.next_tag.outputs.new_tag }}
