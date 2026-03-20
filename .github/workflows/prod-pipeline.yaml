@@ -46,7 +46,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # prevent duplicate tag failure
           if git rev-parse "v${RELEASE_NAME}" >/dev/null 2>&1; then
             echo "Tag already exists, skipping..."
             exit 0
@@ -55,20 +54,20 @@ jobs:
           git tag -a v${RELEASE_NAME} -m "${{ github.event.pull_request.title }}"
           git push origin v${RELEASE_NAME}
 
-      # 📦 Create ZIP
+      # 📦 Create ZIP package
       - name: Create ZIP package
         run: |
           mkdir -p build
           zip -r build/AWSConfig-${RELEASE_NAME}.zip src
 
-      # 🔐 AWS OIDC auth
+      # 🔐 Configure AWS credentials (OIDC)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+          role-to-assume: arn:aws:iam::654654379249:role/GitHubActionsS3Role
           aws-region: us-east-1
 
-      # ☁️ Upload to your bucket
+      # ☁️ Upload to S3
       - name: Upload to S3
         run: |
           FILE=$(ls build/*.zip)
