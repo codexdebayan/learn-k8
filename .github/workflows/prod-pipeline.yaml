@@ -1,0 +1,84 @@
+name: Release Upload to S3
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  release:
+    if: >
+      github.event.pull_request.merged == true &&
+      (
+        startsWith(github.event.pull_request.head.ref, 'release') ||
+        startsWith(github.event.pull_request.head.ref, 'hotfix')
+      )
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # 📥 Checkout main after merge
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # 🔍 Extract release name
+      - name: Extract release info
+        run: |
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          RELEASE_NAME=$(echo $SOURCE_BRANCH | sed 's#.*/##')
+
+          echo "SOURCE_BRANCH=$SOURCE_BRANCH" >> $GITHUB_ENV
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+
+          echo "Release name: $RELEASE_NAME"
+
+      # 🏷️ Create tag
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # prevent duplicate tag failure
+          if git rev-parse "v${RELEASE_NAME}" >/dev/null 2>&1; then
+            echo "Tag already exists, skipping..."
+            exit 0
+          fi
+
+          git tag -a v${RELEASE_NAME} -m "${{ github.event.pull_request.title }}"
+          git push origin v${RELEASE_NAME}
+
+      # 📦 Create ZIP
+      - name: Create ZIP package
+        run: |
+          mkdir -p build
+          zip -r build/AWSConfig-${RELEASE_NAME}.zip src
+
+      # 🔐 AWS OIDC auth
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+          aws-region: us-east-1
+
+      # ☁️ Upload to your bucket
+      - name: Upload to S3
+        run: |
+          FILE=$(ls build/*.zip)
+          echo "Uploading $FILE"
+
+          aws s3 cp $FILE s3://codexdebayan-test-bucket-us-east-1/ --only-show-errors
+
+      # 📁 Upload CF templates (optional)
+      - name: Upload CF templates
+        run: |
+          aws s3 cp cf-templates/ \
+            s3://codexdebayan-test-bucket-us-east-1/cf-templates/ \
+            --recursive --only-show-errors
