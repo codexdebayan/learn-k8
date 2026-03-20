@@ -1,29 +1,27 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: GitHub Actions OIDC Role for S3 Upload (All Branches)
+Description: GitHub Actions OIDC Role for S3 Upload (PR + Branch Support)
 
 Parameters:
 
   GitHubOrg:
     Type: String
-    Description: GitHub Owner / Org name (e.g. debayan-code)
+    Description: GitHub Owner / Org name 
+    Default: codexdebayan
 
   GitHubRepo:
     Type: String
-    Description: GitHub Repository name (e.g. insta-unfollow-tracker)
+    Description: GitHub Repository name 
+    Default: learn-k8
 
   BucketName:
     Type: String
     Description: Target S3 bucket name
+    Default: codexdebayan-test-bucket-us-east-1
 
   RoleName:
     Type: String
     Default: GitHubActionsS3Role
     Description: Name of IAM Role
-
-  AWSRegion:
-    Type: String
-    Default: ap-south-1
-    Description: AWS Region (for reference)
 
   CreateOIDCProvider:
     Type: String
@@ -71,7 +69,9 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
 
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
+                  - !Sub repo:${GitHubOrg}/${GitHubRepo}:pull_request
 
       Policies:
         - PolicyName: S3UploadPolicy
@@ -101,5 +101,7 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
 
   ExampleSubCondition:
-    Description: OIDC Subject Condition Used
-    Value: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
+    Description: OIDC Subject Conditions Used
+    Value: !Sub |
+      repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
+      repo:${GitHubOrg}/${GitHubRepo}:pull_request
