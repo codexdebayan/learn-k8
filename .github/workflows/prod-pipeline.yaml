@@ -79,5 +79,5 @@ jobs:
       - name: Upload CF templates
         run: |
           aws s3 cp cf-templates/ \
-            s3://codexdebayan-test-bucket-us-east-1/cf-templates/ \
+            s3://codexdebayan-test-bucket-us-east-1/src/ \
             --recursive --only-show-errors
