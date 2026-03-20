@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GitHub Actions OIDC Role for S3 Upload (All Branches)
+
+Parameters:
+
+  GitHubOrg:
+    Type: String
+    Description: GitHub Owner / Org name (e.g. debayan-code)
+
+  GitHubRepo:
+    Type: String
+    Description: GitHub Repository name (e.g. insta-unfollow-tracker)
+
+  BucketName:
+    Type: String
+    Description: Target S3 bucket name
+
+  RoleName:
+    Type: String
+    Default: GitHubActionsS3Role
+    Description: Name of IAM Role
+
+  AWSRegion:
+    Type: String
+    Default: ap-south-1
+    Description: AWS Region (for reference)
+
+  CreateOIDCProvider:
+    Type: String
+    AllowedValues: [true, false]
+    Default: true
+    Description: Set false if OIDC provider already exists
+
+Conditions:
+  CreateOIDC: !Equals [!Ref CreateOIDCProvider, "true"]
+
+Resources:
+
+  # 🔐 GitHub OIDC Provider (optional)
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDC
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  # 🎭 IAM Role for GitHub Actions
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      Description: Role assumed by GitHub Actions via OIDC to upload to S3
+
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOIDC
+                - !Ref GitHubOIDCProvider
+                - !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+
+            Action: sts:AssumeRoleWithWebIdentity
+
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
+
+      Policies:
+        - PolicyName: S3UploadPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+
+              # Upload objects
+              - Sid: AllowPutObject
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource: !Sub arn:aws:s3:::${BucketName}/*
+
+              # Optional: list bucket
+              - Sid: AllowListBucket
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${BucketName}
+
+Outputs:
+
+  RoleArn:
+    Description: IAM Role ARN to use in GitHub Actions
+    Value: !GetAtt GitHubActionsRole.Arn
+
+  ExampleSubCondition:
+    Description: OIDC Subject Condition Used
+    Value: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/*
