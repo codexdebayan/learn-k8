@@ -118,7 +118,7 @@ kind create cluster
 kubectl get nodes
 ```
 
-## kubectl commands
+## Main Kubectl commands
 
 ```
 kubectl version
@@ -134,5 +134,47 @@ kubectl create deployment nginx-depl --image=nginx
 >![Comparison between the naming of Deployment, Replicaset & Pod](/assets/deployment-replicaset-pod.png)
 >Fig : 1.1 Comparison between the naming of Deployment, Replicaset & Pod
 
-## Replicaset
+### Replicaset
  Managing the replicas of a pod
+
+### Kubernetes Hierarchy
+
+```
+Deployment manages a
+└── ReplicaSet manages a
+    └── Pod manages a
+        └── Container
+```
+
+#### Commands
+
+To edit the deployment configuration
+ ```
+ kubectl edit deployment <deployment-name>
+ ```
+ E.g.
+ ```
+ kubectl edit deployment ngnix
+ ```
+---
+To describe pod details 
+```
+kubectl describe pod <pod-name>
+```
+
+---
+To check logs
+```
+kubectl logs <pod-name>
+```
+
+---
+To enter inside the executable
+```
+kubectl exec -it <pod-name> -- bin/bash
+```
+---
+To deploy with a configuration file
+```
+kubectl apply -f <config-file.yaml>
+```
